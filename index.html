@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music and Instruments</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // --- DARK THEME PALETTE ---
+                        'primary-dark-bg': '#1e293b', // Slate 800 - Main Background
+                        'primary-surface': '#334155', // Slate 700 - Card Surface
+                        'accent-pink': '#ec4899',   // Vibrant Pink accent (Kept)
+                        'card-front-bg': '#334155', // Card surface color
+                        'card-back-bg': '#0d9488', // Deep Teal (Answer background - Dark, High-Contrast)
+                        'text-light': '#f8fafc', // Slate 50 - Primary light text
+                        'text-secondary': '#94a3b8', // Slate 400 - Secondary text
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            /* Now using a deep slate background for the entire page */
+            background-color: var(--tw-colors-primary-dark-bg);
+            /* Removed gradient for a clean, flat dark look */
+        }
+
+        /* 3D Flip Card Styles */
+        .flashcard-container {
+            perspective: 1200px;
+            height: 340px; 
+            width: 100%;
+            max-width: 640px; 
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55); 
+            cursor: pointer;
+            /* Increased shadow for depth on dark background */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); 
+            border-radius: 1.5rem;
+        }
+        
+        /* Animation when moving to a new card */
+        .card-shift {
+            animation: shift-effect 0.4s ease-out;
+        }
+        
+        @keyframes shift-effect {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(0.95); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .card-front {
+            /* Dark surface for the question side */
+            background-color: var(--tw-colors-card-front-bg);
+            /* Vibrant pink border for visibility */
+            border: 6px solid var(--tw-colors-accent-pink); 
+        }
+
+        .card-back {
+            /* Deep teal background for the answer side */
+            background-color: var(--tw-colors-card-back-bg);
+            color: var(--tw-colors-text-light); /* Ensure text is light */
+            transform: rotateY(180deg);
+            /* Gradient adjusted for dark background contrast */
+            background-image: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%);
+        }
+        
+        .nav-button {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            /* Button color changed to accent pink for better contrast on dark BG */
+            background: linear-gradient(45deg, var(--tw-colors-accent-pink), #f472b6); 
+            color: white;
+            border: none;
+        }
+
+        .nav-button:hover {
+            /* Shadow color matches the pink accent */
+            box-shadow: 0 6px 20px -5px rgba(236, 72, 153, 0.7); 
+            transform: scale(1.05);
+        }
+
+        .nav-button:active {
+            transform: scale(0.98);
+        }
+
+        .nav-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(80%);
+            box-shadow: none;
+            transform: none;
+        }
+    </style>
+</head>
+<body class="bg-primary-dark-bg p-4 md:p-8 font-sans min-h-screen flex flex-col items-center">
+
+    <header class="text-center mb-10 w-full max-w-xl">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-text-light mb-2 leading-tight">
+            <!-- Header text uses light color -->
+            <span class="text-accent-pink">♬</span> Music Flashcards <span class="text-accent-pink">𝅘𝅥𝅮</span>
+        </h1>
+        <p class="text-xl sm:text-2xl text-text-secondary font-medium">
+            Touch cards to check answer!
+        </p>
+    </header>
+
+    <main class="w-full max-w-3xl flex flex-col items-center flex-grow">
+        
+        <!-- Progress Counter -->
+        <div id="progress-counter" class="text-lg font-bold text-accent-pink mb-10 px-6 py-2 bg-primary-surface rounded-full shadow-lg border-2 border-accent-pink/50 transition duration-300 ease-in-out">
+            Card 1 of 104
+        </div>
+
+        <!-- Single Flashcard Display -->
+        <div id="card-display" class="flashcard-container mb-12 card-shift">
+            <!-- Card content will be injected here by JavaScript -->
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="flex justify-center space-x-8 w-full max-w-lg">
+            <button id="prev-button" onclick="prevCard()" class="nav-button font-extrabold py-3 px-10 rounded-full shadow-xl">
+                &larr; Previous
+            </button>
+            <button id="next-button" onclick="nextCard()" class="nav-button font-extrabold py-3 px-10 rounded-full shadow-xl">
+                Next &rarr;
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // DATA SET (104 cards)
+        const flashcardData = [
+            // Original 27 Cards
+            { question: "Which is the most ancient style of Hindustani classical music?", answer: "Dhrupad" },
+            { question: "How many strings are on a Sarod?", answer: "4" },
+            { question: "All India Radio, started its operation with its original name, Indian Broadcasting Company in:", answer: "1927" },
+            { question: "'Turi', 'Bungal' and 'Pava' are folk musical instruments from the state of:", answer: "Gujarat" },
+            { question: "Name the class of folk songs of Goa, usually sung to mourn the death of the loved ones.", answer: "Banvarh" },
+            { question: "Ghumot is indigenous traditional percussion instrument of:", answer: "Goa" },
+            { question: "Which of is the regional music of Goa?", answer: "Mando" },
+            { question: "Which music composer was deaf?", answer: "Beethoven" },
+            { question: "Which 'Raag' is a morning 'Raag'?", answer: "Bhairavi" },
+            { question: "Which city has been included in UNESCO's creative cities network for contribution in music?", answer: "Chennai" },
+            { question: "The pen name of Sampooran Singh Kalra, an Indian poet, lyricist and film director is:", answer: "Gulzar" },
+            { question: "Group singing is related to 'Sabad':", answer: "Guru Purab" },
+            { question: "Who was the Guru of the music maestro Tansen?", answer: "Haridas" },
+            { question: "Ragini is a popular form of folk song belonging to the State of:", answer: "Haryana" },
+            { question: "Ten thaats or scales, belong to which system of music?", answer: "Hindustani Music" },
+            { question: "Chakri is a type of traditional music that is popular in the Indian state of:", answer: "Jammu and Kashmir" },
+            { question: "Name the devotional folk music of Manipur usually sung by a group of people.", answer: "Khubak Eshei" },
+            { question: "In which Performing Arts, Mizhavu is the major musical instrument?", answer: "Koodiyattam" },
+            { question: "Name 10 popular Gharana (styles) of Hindustani classical music.", answer: "Gwalior gharana, Agra gharana, Kirana gharana, Bhendibazaar gharana, Jaipur-Atrauli gharana, Patiāla gharana, Rāmpur-Sahaswān gharana, Indore gharana, Mewati gharana, Sham Chaurasia gharana" },
+            { question: "Where is the Bhatkhande Music College located?", answer: "Lucknow" },
+            { question: "The Government of which state started the Tansen Samman?", answer: "Madhya Pradesh" },
+            { question: "Which instrument is used in Bharatanatyam?", answer: "Mridangam" },
+            { question: "Which is a wind musical instrument?", answer: "Nadaswaram" },
+            { question: "'Dhenka' is a well-known musical instrument of:", answer: "Odisha" },
+            { question: "'Mahuri' is a traditional musical instrument belonging to the state of:", answer: "Odisha" },
+            { question: "Famous musician Annapurna Devi was a recipient of:", answer: "Padma Bhushan" },
+            { question: "Raga Kameshwari was composed by:", answer: "Pandit Ravi Shankar" },
+            
+            // New 77 Cards (Qn 29 - Qn 105)
+            { question: "Which musical framework, once present in 'Brihaddeshi' (an ancient text), got grouped into folk and classical music?", answer: "Ragas" },
+            { question: "Which musical activity is NOT recognized as an Intangible Cultural Heritage (ICH) by UNESCO (Sitar Vadan, Qawwali, etc.)?", answer: "Sitar Vadan (Sitar playing)" },
+            { question: "Which among the following is not a stringed instrument (Sitar, Sarod, Santoor, or Tabla)?", answer: "Tabla" },
+            { question: "Which of the following match is correct (Tabla - Zakir Hussain, Santoor - Hariprasad Churasia, etc.)?", answer: "Tabla - Zakir Hussain" },
+            { question: "Who is believed to have created the raga 'Miyan Ki Malhar'?", answer: "Tansen" },
+            { question: "Which form is NOT a part of Carnatic music (Kriti, Thillana, Shlokam, or Tappa)?", answer: "Tappa" },
+            { question: "Carnatic music is primarily practiced in which state?", answer: "Tamil Nadu" },
+            { question: "What is 'Vishva Mohini'?", answer: "The title given to Lata Mangeshkar for her contribution to music" },
+            { question: "Which renowned tabla player's son is also a famous tabla player who has collaborated with international bands?", answer: "Ustad Allah Rakha" },
+            { question: "Which musician (MS Subbulaxmi, Ustad Bismillah Khan, Bhimsen Joshi, or Dr. Balamuralikrishna) is NOT primarily an Indian classical singer?", answer: "Ustad Bismillah Khan" },
+            { question: "Which is the most ancient musical instrument of India?", answer: "Veena" },
+            { question: "To which state does the traditional vibrating reed instrument 'Gogona', made of a single piece of seasoned bamboo, belong?", answer: "Assam" },
+            { question: "To which state does the folk song 'Bhawaiya' belong?", answer: "West Bengal" },
+            { question: "Bhatiali is the folk music of which state?", answer: "West Bengal" },
+            { question: "In a composition of the Hindustani Classical music, which term denotes the second part of the composition?", answer: "Antara" },
+            { question: "Which musical instrument is played in Rajasthan?", answer: "Bhungal" },
+            { question: "Which is the single string musical instrument made using a bamboo and a gourd, mostly used by traditional folk singers in Maharashtra?", answer: "Ektara" },
+            { question: "Lavani is a folk music of which state?", answer: "Maharashtra" },
+            { question: "'Damane' and 'Hulki' are popular traditional musical instruments from the state of:", answer: "Himachal Pradesh" },
+            { question: "The wood of which tree is used to make the large plucked string instrument known as Bobbili Veena / Saraswathi Veena?", answer: "Jackfruit wood" },
+            { question: "Janapada Geete, which includes the vachanas of Basavanna, is folk music from the Indian state of:", answer: "Karnataka" },
+            { question: "\"Bhuta Song\" belongs to which Indian State?", answer: "Kerala" },
+            { question: "\"Khuang\" is a traditional musical instrument of which state?", answer: "Mizoram" },
+            { question: "With which state are songs called 'Lotia' traditionally associated?", answer: "Rajasthan" },
+            { question: "Folk music 'Mand' is related to which state?", answer: "Rajasthan" },
+            { question: "Which is the earliest text containing the shlokas that were put to music?", answer: "Sama Veda" },
+            { question: "\"Samaveda\" is considered to be one of the primary sources of Indian:", answer: "music and art" },
+            { question: "Which Goddess is visualised as the wielder of the musical instrument 'Veena' in Indian culture?", answer: "Saraswati" },
+            { question: "Name the type of folk songs of Sikkim which describe the natural beauty of the state.", answer: "Gha To Kito" },
+            { question: "What is the traditional musical instrument of the Limboo community of Sikkim?", answer: "Chyap Brung" },
+            { question: "Which is NOT a vocal form of Hindustani classical music (Pakhawaj, Tarana, Drupad, or Dhamar)?", answer: "Pakhawaj" },
+            { question: "With reference to Indian music, which of the following is NOT a 'Raga' (Poorvi, Shringara, Hindol, or Bhairavi)?", answer: "Shringara" },
+            { question: "Pandit Shivkumar Sharma, a recipient of Padma Vibhushan, is associated with which musical instrument?", answer: "Santoor (Stringed Musical instrument)" },
+            { question: "Amjad Ali Khan is a maestro with which instrument?", answer: "Sarod" },
+            { question: "Who is considered the father of Sahatara (Sitar)?", answer: "Amir Khusro" },
+            { question: "Which has been the field of activity of Pt. Bhimsen Joshi?", answer: "Classical music" },
+            { question: "Panna Lal Ghosh is related to which musical instrument?", answer: "Flute" },
+            { question: "With which musical instrument is Hari Prasad Chaurasia associated?", answer: "Flute" },
+            { question: "In which year did the legendary Hindustani classical musician Annapurna Devi die?", answer: "2018" },
+            { question: "With which musical instrument is the musician Sikkil Mala Chandrasekhar associated?", answer: "Flute" },
+            { question: "Who among others, is related to ghazal singing (Begum Akhtar, Mallika Pukhraj, Peenaz Masani, or A. R. Rahman)?", answer: "A. R. Rahman" },
+            { question: "Which Indian is given the popular name 'Mozart of Madras'?", answer: "A. R. Rahman" },
+            { question: "Which musician is a distinguished Tabla player?", answer: "Alla Rakha" },
+            { question: "The Indian musician who has won an Academy Award is:", answer: "A R Rahman" },
+            { question: "Who is India's only female Shehnai player?", answer: "Bageshwari Qamar" },
+            { question: "Which musician is famous for Classical Carnatic music?", answer: "Balamuralikrishna" },
+            { question: "Which Indian vocalist and musician established the Academy of Performing Arts and Research in Switzerland?", answer: "Balamuralikrishna" },
+            { question: "The famous Shehnai player of India is:", answer: "Balamuralikrishna" },
+            { question: "In which arc, has Pandit Jasraj established his reputation?", answer: "Hindustani classical singing" },
+            { question: "Pandit Bhimsen Joshi is associated with which tradition of classical music?", answer: "Hindustani" },
+            { question: "Which Gharana of classical singing did late Pandit Bhimsen Joshi belong to?", answer: "Kirana" },
+            { question: "Who is the singer and composer of official anthem for 'Bharat ke Veer' initiative?", answer: "Kailash Kher" },
+            { question: "Kedarnath Bhattacharya, a popular singer, is better known by the name:", answer: "Kumar Sanu" },
+            { question: "Which female vocalist is renowned in Hindustani classical music (vocal)?", answer: "M. S. Subbalakshmi" },
+            { question: "Who was the first musician to be awarded the Bharat Ratna?", answer: "M. S. Subbalakshmi" },
+            { question: "Which musician belongs to the Rampur Saheswan Gharana?", answer: "Malini Rajurkar" },
+            { question: "Begum Akhtar is associated to which art form?", answer: "Music" },
+            { question: "Zubin Mehta is associated with:", answer: "Music" },
+            { question: "Which male vocalist is renowned in Hindustani Classical music (vocal)?", answer: "Pt. Jasraj" },
+            { question: "Who is a famous singer of Hindustani classical music?", answer: "Shubha Mudgal" },
+            { question: "Pandit Budhaditya Mukherjee is associated with which musical instruments?", answer: "Sitar" },
+            { question: "Anoushka Shankar is related to which musical instrument?", answer: "Sitar" },
+            { question: "The noted musician Arvind Parikh is associated with which musical instrument?", answer: "Sitar" },
+            { question: "Renowned Musician Annapurna Devi is associated with which musical instrument?", answer: "Surbahar" },
+            { question: "Pandit Lachhu Maharaj, who passed away recently, was associated with:", answer: "Tabla" },
+            { question: "With which musical instrument was the noted musician Pandit Kishan Maharaj associated?", answer: "Tabla" },
+            { question: "S. Balachander is associated with which musical instrument?", answer: "Veena" },
+            { question: "Govind Swami Pillai is associated with which musical instrument?", answer: "Violin" },
+            { question: "V.G. Jog is famous for which musical instrument?", answer: "Violin" },
+            { question: "Which musical instrument does Pandit Ram Narayan play?", answer: "Violin" },
+            { question: "With which instrument is the musician Tulsidas Borkar associated?", answer: "Harmonium" },
+            { question: "Who out of the following was not a great master of Carnatic music (Swathi Thirunaal, Vishnu Digambar Paluskar, Muthuswami Dikshitar, or Shyama Shastri)?", answer: "Vishnu Digambar Paluskar" },
+            { question: "Who is a famous Tabla player?", answer: "Zakir Hussain" },
+            { question: "'Bobbili Veena' is a well-known musical instrument from the state of:", answer: "Andhra Pradesh" },
+            { question: "The musician who belonged to the state of Assam is:", answer: "Bhupen Hazarika" },
+            { question: "The renowned classical singer Uday Bhawalkar is an exponent of which form of Hindustani classical music?", answer: "Dhrupad" },
+            { question: "Ustad Alladiya Khan belongs to which gharana of Hindustani music?", answer: "Jaipur Gharana" }
+        ];
+
+        // STATE VARIABLES
+        let currentIndex = 0;
+        const totalCards = flashcardData.length;
+
+        // DOM REFERENCES
+        const cardDisplay = document.getElementById('card-display');
+        const progressCounter = document.getElementById('progress-counter');
+        const prevButton = document.getElementById('prev-button');
+        const nextButton = document.getElementById('next-button');
+        
+        // Timeout ID for card shift animation
+        let shiftTimeout = null;
+
+        /**
+         * Renders the current card based on the currentIndex.
+         */
+        function showCard() {
+            if (totalCards === 0) {
+                cardDisplay.innerHTML = '<p class="text-xl text-text-secondary">No flashcards loaded.</p>';
+                prevButton.disabled = true;
+                nextButton.disabled = true;
+                return;
+            }
+
+            // Remove animation class before re-adding content
+            cardDisplay.classList.remove('card-shift');
+
+            const data = flashcardData[currentIndex];
+
+            // 1. Update the card HTML
+            cardDisplay.innerHTML = `
+                <div id="current-flashcard" class="flashcard" onclick="flipCard()">
+                    <div class="card-face card-front">
+                        <div class="text-xl sm:text-2xl font-semibold text-text-light">
+                            <!-- Text color for the question is now light -->
+                            <p class="mb-3 text-accent-pink text-sm font-extrabold uppercase tracking-widest">Question ${currentIndex + 1}</p>
+                            <p>${data.question}</p>
+                        </div>
+                    </div>
+                    <div class="card-face card-back">
+                        <div class="text-2xl sm:text-3xl font-extrabold text-text-light">
+                            <!-- Answer text is explicitly light for high contrast on the dark teal background -->
+                            <p class="mb-3 text-accent-pink text-sm font-extrabold uppercase tracking-widest">Answer</p>
+                            <p>${data.answer}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Re-add animation class after content update
+            void cardDisplay.offsetWidth; // Trigger reflow to restart animation
+            cardDisplay.classList.add('card-shift');
+
+
+            // 2. Update the progress counter
+            progressCounter.textContent = `Card ${currentIndex + 1} of ${totalCards}`;
+
+            // 3. Update button states
+            prevButton.disabled = currentIndex === 0;
+            nextButton.disabled = currentIndex === totalCards - 1;
+        }
+
+        /**
+         * Toggles the flip class on the current card.
+         */
+        function flipCard() {
+            const cardElement = document.getElementById('current-flashcard');
+            if (cardElement) {
+                cardElement.classList.toggle('flipped');
+            }
+        }
+        
+        /**
+         * Generic function to handle card navigation with animation.
+         */
+        function navigateCard(direction) {
+            let newIndex = currentIndex + direction;
+
+            if (newIndex >= 0 && newIndex < totalCards) {
+                // Clear any existing animation timeout
+                if (shiftTimeout) clearTimeout(shiftTimeout);
+
+                // Start the card shift animation by toggling the class
+                cardDisplay.classList.remove('card-shift');
+                void cardDisplay.offsetWidth; // Trigger reflow
+                cardDisplay.classList.add('card-shift');
+
+                const cardElement = document.getElementById('current-flashcard');
+                const isFlipped = cardElement && cardElement.classList.contains('flipped');
+
+                if (isFlipped) {
+                    cardElement.classList.remove('flipped');
+                }
+
+                // Wait for the visual flip/shift effect to start before changing data
+                shiftTimeout = setTimeout(() => {
+                    currentIndex = newIndex;
+                    showCard();
+                }, isFlipped ? 350 : 200); // Wait longer if card needs to flip back
+            }
+        }
+
+
+        /**
+         * Moves to the next card.
+         */
+        function nextCard() {
+            navigateCard(1);
+        }
+
+        /**
+         * Moves to the previous card.
+         */
+        function prevCard() {
+            navigateCard(-1);
+        }
+
+        // Initialize the app
+        window.onload = showCard;
+    </script>
+
+</body>
+</html>
